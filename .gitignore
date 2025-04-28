@@ -1,0 +1,11 @@
+# JetBrains IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+modules.xml
+
+# Go
+bin/
+pkg/
+__debug_bin
