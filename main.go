@@ -2,68 +2,27 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
-	"github.com/Knetic/govaluate"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"net/http"
 )
 
-type Calculation struct {
-	ID         string `json:"id"`
-	Expression string `json:"expression"`
-	Result     string `json:"result"`
+type Task struct {
+	ID     string `json:"id"`
+	Text   string `json:"text"`
+	Status string `json:"status"`
 }
-
-type CalculationRequest struct {
-	Expression string `json:"expression"`
-}
-
-var calculations = []Calculation{}
-
-var task string
 
 type TaskUpdateRequest struct {
-	Task string `json:"task"`
+	Text   string `json:"text"`
+	Status string `json:"status"`
 }
 
-func calculateExpression(expression string) (string, error) {
-	expr, err := govaluate.NewEvaluableExpression(expression)
-	if err != nil {
-		return "", err
-	}
-	result, err := expr.Evaluate(nil)
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("%v", result), err
+var tasks []Task
 
-}
-func getCalculations(c echo.Context) error {
-	return c.JSON(http.StatusOK, calculations)
-}
-func postCalculations(c echo.Context) error {
-	var req CalculationRequest
-	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid operation"})
-
-	}
-
-	result, err := calculateExpression(req.Expression)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid expression"})
-	}
-	calc := Calculation{
-		ID:         uuid.NewString(),
-		Expression: req.Expression,
-		Result:     result,
-	}
-	calculations = append(calculations, calc)
-	return c.JSON(http.StatusCreated, calc)
-}
 func getTask(c echo.Context) error {
-	return c.String(http.StatusOK, "hello,"+task)
+	return c.JSON(http.StatusOK, tasks)
 }
 
 func postTask(c echo.Context) error {
@@ -71,19 +30,58 @@ func postTask(c echo.Context) error {
 	if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid task"})
 	}
-	task = req.Task
+	newTask := Task{
+		ID:     uuid.New().String(),
+		Text:   req.Text,
+		Status: req.Status,
+	}
+	tasks = append(tasks, newTask)
+
 	return c.JSON(http.StatusOK, map[string]string{"status": "task updated"})
 }
+
+func patchTask(c echo.Context) error {
+	taskID := c.Param("id")
+	var req TaskUpdateRequest
+	if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid task"})
+	}
+	for i, task := range tasks {
+		if task.ID == taskID {
+			if req.Text != "" {
+				tasks[i].Text = req.Text
+			}
+			if req.Status != "" {
+				tasks[i].Status = req.Status
+			}
+
+			return c.JSON(http.StatusOK, tasks[i])
+		}
+
+	}
+	return c.JSON(http.StatusNotFound, map[string]string{"error": "task not found"})
+}
+
+func deleteTask(c echo.Context) error {
+	taskID := c.Param("id")
+	for i, task := range tasks {
+		if task.ID == taskID {
+			tasks = append(tasks[:i], tasks[i+1:]...)
+			return c.NoContent(http.StatusNoContent)
+		}
+	}
+	return c.JSON(http.StatusNotFound, map[string]string{"error": "task id not found"})
+}
+
 func main() {
 	e := echo.New()
 	e.Use(middleware.CORS())
 	e.Use(middleware.Logger())
 
-	e.GET("/calculations", getCalculations)
-	e.POST("/calculations", postCalculations)
-
 	e.GET("/task", getTask)
 	e.POST("/task", postTask)
+	e.PATCH("/task/:id", patchTask)
+	e.DELETE("/task/:id", deleteTask)
 
 	e.Start("localhost:8080")
 }
