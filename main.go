@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/Knetic/govaluate"
 	"github.com/google/uuid"
@@ -27,14 +28,6 @@ type TaskUpdateRequest struct {
 	Task string `json:"task"`
 }
 
-func updateTask(c echo.Context) error {
-	var req TaskUpdateRequest
-	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid task"})
-	}
-	task = req.Task
-	return c.JSON(http.StatusOK, map[string]string{"status": "update"})
-}
 func calculateExpression(expression string) (string, error) {
 	expr, err := govaluate.NewEvaluableExpression(expression)
 	if err != nil {
@@ -70,7 +63,16 @@ func postCalculations(c echo.Context) error {
 	return c.JSON(http.StatusCreated, calc)
 }
 func getTask(c echo.Context) error {
-	return c.String(http.StatusOK, "hello"+task)
+	return c.String(http.StatusOK, "hello,"+task)
+}
+
+func postTask(c echo.Context) error {
+	var req TaskUpdateRequest
+	if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid task"})
+	}
+	task = req.Task
+	return c.JSON(http.StatusOK, map[string]string{"status": "task updated"})
 }
 func main() {
 	e := echo.New()
@@ -80,8 +82,8 @@ func main() {
 	e.GET("/calculations", getCalculations)
 	e.POST("/calculations", postCalculations)
 
-	e.PUT("/task", updateTask)
 	e.GET("/task", getTask)
+	e.POST("/task", postTask)
 
 	e.Start("localhost:8080")
 }
