@@ -37,7 +37,7 @@ func postTask(c echo.Context) error {
 	}
 	tasks = append(tasks, newTask)
 
-	return c.JSON(http.StatusOK, map[string]string{"status": "task updated"})
+	return c.JSON(http.StatusOK, tasks)
 }
 
 func patchTask(c echo.Context) error {
