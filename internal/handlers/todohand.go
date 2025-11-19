@@ -16,6 +16,7 @@ func NewTodoHandler(service *todoservice.TodoService) *TodoHandler {
 }
 
 func (h *TodoHandler) GetTasks(c echo.Context) error {
+
 	tasks, err := h.service.GetAllTasks()
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "could not fetch tasks"})

@@ -4,7 +4,6 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"log"
-	"todobackend/internal/todoservice"
 )
 
 var DB *gorm.DB
@@ -16,10 +15,6 @@ func Init() {
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("Could not connect to database: %v", err)
-	}
-
-	if err := DB.AutoMigrate(&todoservice.Task{}); err != nil {
-		log.Fatalf("Could not migrate: %v", err)
 	}
 
 	log.Println("Database connected successfully")
